@@ -39,16 +39,21 @@ observation_space = env.observation_space.shape[0]
 memory_size = 10000
 memory = deque(maxlen=memory_size)
 
-episodes = 50
+episodes = 70
 max_step = 200
 
-batch_size = 64
+batch_size = 32
 gamma = 0.95
 
-epsilon = 1
+epsilon_max = 1
+epsilon_min = 0.01
+epsilon = epsilon_max
+
 decay_rate = 0.001
 
 DQNetwork = DQNetwork(observation_space, action_space)
+
+total_step = 0
 
 for episode in range(episodes):
 	state = env.reset()
@@ -57,10 +62,11 @@ for episode in range(episodes):
 	for step in range(max_step):
 		action = getAction(state, epsilon, False)
 		next_state, reward, done, _ = env.step(action)
+		next_state = np.reshape(next_state, [1, observation_space])
 		episode_reward += reward
+		total_step += 1
 		if done:
 			reward = -reward
-		next_state = np.reshape(next_state, [1, observation_space])
 
 
 		store(state, next_state, action, reward, done)
@@ -105,7 +111,8 @@ for episode in range(episodes):
 		#print(targetQs_list)
 		#exit()
 		DQNetwork.model.fit(states, targetQs_list, verbose=0)
-		epsilon = max(epsilon*(1-decay_rate), 0.01)
+		#epsilon = max(epsilon*(1-decay_rate), 0.01)
+		epsilon = epsilon_min + (epsilon_max - epsilon_min) * np.exp(-decay_rate * total_step)
 		#--------------------------------------------
 
 for episode in range(10):
