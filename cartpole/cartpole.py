@@ -39,7 +39,7 @@ observation_space = env.observation_space.shape[0]
 memory_size = 10000
 memory = deque(maxlen=memory_size)
 
-episodes = 100
+episodes = 50
 max_step = 200
 
 batch_size = 64
@@ -57,7 +57,8 @@ for episode in range(episodes):
     for step in range(max_step):
         action = getAction(state, epsilon, False)
         next_state, reward, done, _ = env.step(action)
-        reward = reward
+		if done:
+			reward = -reward
         next_state = np.reshape(next_state, [1, observation_space])
 
         episode_reward += reward
@@ -102,7 +103,6 @@ for episode in range(10):
     for step in range(max_step):
         action = getAction(state, None, True)
         next_state, reward, done, _ = env.step(action)
-        reward = reward
         next_state = np.reshape(next_state, [1, observation_space])
 
         episode_reward += reward
