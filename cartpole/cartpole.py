@@ -28,7 +28,7 @@ def getAction(state, epsilon, test):
 			#print(Q)
 			#print(np.argmax(Q))
 			return np.argmax(DQNetwork.model.predict(state)[0])
-			
+
 def store(state, next_state, action, reward, done):
 	memory.append((state, next_state, action, reward, done))
 
@@ -46,7 +46,7 @@ batch_size = 64
 gamma = 0.95
 
 epsilon = 1
-decay_rate = 0.003
+decay_rate = 0.001
 
 DQNetwork = DQNetwork(observation_space, action_space)
 
@@ -57,11 +57,11 @@ for episode in range(episodes):
 	for step in range(max_step):
 		action = getAction(state, epsilon, False)
 		next_state, reward, done, _ = env.step(action)
+		episode_reward += reward
 		if done:
 			reward = -reward
 		next_state = np.reshape(next_state, [1, observation_space])
 
-		episode_reward += reward
 
 		store(state, next_state, action, reward, done)
 
@@ -70,13 +70,14 @@ for episode in range(episodes):
 					'Episode_Reward: {}'.format(episode_reward),
 					'Epsilon: {}'.format(epsilon))
 			break
-		
+
 		state = next_state
-		
+
 		#--------------------------------------------
 		if len(memory) < batch_size:
 			continue
 		batch = random.sample(memory, batch_size)
+		targetQs_list = []
 		for state_temp, next_state_temp, action_temp, reward_temp, done_temp in batch:
 			if done_temp:
 				targetQ = reward_temp
@@ -90,9 +91,20 @@ for episode in range(episodes):
 			targetQs = DQNetwork.model.predict(state_temp)
 			#print(targetQs)
 			targetQs[0][action_temp] = targetQ
+			targetQs_list.append(targetQs[0])
 			#print(targetQs)
 			#print("---------------")
-			DQNetwork.model.fit(state_temp, targetQs, verbose=0)
+		states = np.array([each[0][0] for each in batch])
+		states = np.reshape(states, [batch_size, observation_space])
+		#print(targetQs_list)
+		targetQs_list = np.reshape(targetQs_list, [batch_size, action_space	])
+
+		#print(states.shape)
+		#print(states)
+		#states = np.reshape(state, [1, observation_space])
+		#print(targetQs_list)
+		#exit()
+		DQNetwork.model.fit(states, targetQs_list, verbose=0)
 		epsilon = max(epsilon*(1-decay_rate), 0.01)
 		#--------------------------------------------
 
