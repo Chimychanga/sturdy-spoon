@@ -20,15 +20,19 @@ class ConvNetwork():
 		self.model.compile(loss="mse", optimizer=Adam(lr=0.01))
 
 episode = 10
-
-conv = ConvNetwork()
-img32 = cv2.imread('imageset/32/1.png', cv2.IMREAD_GRAYSCALE)
-img32 = img32.reshape(32,32,1)
-img32 = np.expand_dims(img32, axis=0)
-
-img64 = cv2.imread('imageset/64/1.png', cv2.IMREAD_GRAYSCALE)
-img64 = img64.reshape(64*64)
-img64 = np.expand_dims(img64, axis=0)
+img32 = []
+for i in range(11):
+	conv = ConvNetwork()
+	img = cv2.imread('imageset/32/'+str(i)+'.png', cv2.IMREAD_GRAYSCALE)
+	img = img.reshape(32,32,1)
+	img32.append = np.expand_dims(img32, axis=0)
+	
+for i in range(11):
+	img64 = cv2.imread('imageset/64/1.png', cv2.IMREAD_GRAYSCALE)
+	img64 = img64.reshape(64*64)
+	img64 = np.expand_dims(img64, axis=0)
+	
+	
 for i in range(episode):
 	print(img32.shape)
 	output = conv.model.predict(img32)
