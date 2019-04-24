@@ -3,9 +3,9 @@ import gym
 import numpy as np
 import tensorflow as tf
 from collections import deque
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.optimizers import Adam
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import Adam
 
 class DQNetwork():
 	def __init__(self, observation_space, action_space):
