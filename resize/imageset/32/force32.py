@@ -3,7 +3,7 @@ import gym
 import numpy as np
 import cv2
 
-for i in range(1,11):
+for i in range(10):
 	filename = str(i)+'.png'
 	img = cv2.imread(filename, cv2.IMREAD_GRAYSCALE)
 	print(filename)
