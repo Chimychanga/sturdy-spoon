@@ -43,12 +43,27 @@ def show(obs,preprocess):
     time.sleep(0.05)
     pass
 
+def init_action_space():
+    #[b,a,mode,start,up,down,left,right,c,y,x,z]
+    left        =[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]
+    right       =[0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]
+    left_down   =[0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0]
+    right_down  =[0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0]
+    down        =[0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+    down_b      =[1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0]
+    b           =[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    action_space = [left,right,left_down,right_down,down,down_b,b]
+    return action_space
+
+
 def main():
     env = make(game='SonicTheHedgehog-Genesis', state='LabyrinthZone.Act1')
     obs = env.reset()
     frames = framestack(None,preprocess(obs))
+    action_space = init_action_space()
+    print(action_space)
     while True:
-        obs, rew, done, info = env.step(env.action_space.sample())
+        obs, rew, done, info = env.step(action_space[1])
         framestack(frames,obs)
         show(obs,preprocess(frames[-1]))
 
