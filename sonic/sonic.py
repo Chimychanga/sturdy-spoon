@@ -1,6 +1,10 @@
 from retro_contest.local import make
 import cv2
 
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+
 import numpy as np
 from collections import deque
 
@@ -55,13 +59,27 @@ def init_action_space():
     action_space = [left,right,left_down,right_down,down,down_b,b]
     return action_space
 
+def getModel():
+    model = keras.Sequential()
+    model.add(keras.Input(shape=(96, 96, 1)))
+    model.add(layers.Conv2D(32, 8, activation="relu"))
+    model.add(layers.Conv2D(64, 4, activation="relu"))
+    model.add(layers.Conv2D(64, 4, activation="relu"))
+    model.add(layers.Flatten)
+    #model.add(layers.MaxPooling2D(2))
+    model.add(layers.Dense(10))
+
+    return model
 
 def main():
+    train_model = getModel()
+    step_model = getModel()
+    model.summary()
+
     env = make(game='SonicTheHedgehog-Genesis', state='LabyrinthZone.Act1')
     obs = env.reset()
     frames = framestack(None,preprocess(obs))
     action_space = init_action_space()
-    print(action_space)
     while True:
         obs, rew, done, info = env.step(action_space[1])
         framestack(frames,obs)
