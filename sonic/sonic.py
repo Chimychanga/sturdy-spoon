@@ -36,6 +36,13 @@ class memory():
     def add(self, experience):
         self.buffer.append(experience)
 
+    def sample(self, batch_size):
+        buffer_size = len(self.buffer)
+        index = np.random.choice(np.arange(buffer_size),
+                                size = batch_size,
+                                replace = False)
+
+        return [self.buffer[i] for i in index]
 
 def show(obs,frames):
     obs = cv2.cvtColor(obs, cv2.COLOR_RGB2BGR)
@@ -101,14 +108,13 @@ def get_action(model, frames, action_space):
     return action
 
 def learn(actor, critic, frames, action, reward, prev_frames, done, action_space):
-    arr_frames = np.asarray([frames])
-    arr_prev_frames = np.asarray([prev_frames])
-
+    arr_frames = np.asarray([frames[0]])
+    arr_prev_frames = np.asarray([prev_frames[0]])
     value = critic.predict(arr_frames)
     prev_value = critic.predict(arr_prev_frames)
 
-    target = reward + 0.95 * prev_value * (1-int(done))
-    delta = target - value
+    target = reward + 0.95 * value * (1-done)
+    delta = target - prev_value
     #print(target)
     #print(delta)
 
@@ -119,7 +125,43 @@ def learn(actor, critic, frames, action, reward, prev_frames, done, action_space
 
     return
 
+def fill_mem(env, memory, frames, action_space):
+
+    while len(memory.buffer) < 10000:
+        prev_frames = frames.stack
+        action = np.random.choice(action_space.shape[0])
+        obs, rew, done, info = env.step(action_space[action])
+        frames.add(frame = preprocess(obs))
+        memory.add([frames.stack, action, rew, prev_frames, done])
+        if len(memory.buffer) % 1000 == 0:
+            print(len(memory.buffer))
+        if done:
+            obs = env.reset()
+
+    return
+
+def play(env, memory, frames, action_space, actor, render):
+    step = 0
+    while True:
+        step += 1
+        if step %100 == 0:
+            print(step)
+        prev_frames = frames.stack
+        action = get_action(actor, frames.stack, action_space)
+        obs, rew, done, info = env.step(action_space[action])
+        #print(rew)
+        frames.add(frame = preprocess(obs))
+        memory.add([frames.stack, action, rew, prev_frames, done])
+        if render:
+            env.render()
+        if done or step > 1000:
+            env.reset()
+            break
+
+    return
+
 def main():
+    cnt = 0
     actor, critic = getModel()
     actor.summary()
 
@@ -128,19 +170,37 @@ def main():
 
     frames = framestack(max_size = 4, frame = preprocess(obs))
     mem = memory(max_size = 10000)
-    print(mem.buffer)
     action_space = init_action_space()
+    fill_mem(env, mem, frames, action_space)
+    for i in range(10):
+        batch = np.asarray(mem.sample(1024))
+        frames_batch = np.array([each[0] for each in batch], ndmin=3)
+        action_batch = np.array([each[1] for each in batch])
+        reward_batch = np.array([each[2] for each in batch])
+        prev_frame_batch = np.array([each[3] for each in batch], ndmin=3)
+        done_batch = np.array([each[4] for each in batch])
+
+
+        learn(actor, critic, frames_batch, action_batch, reward_batch, prev_frame_batch, done_batch, action_space)
 
     while True:
-        action = get_action(actor,frames.stack,action_space)
-        obs, rew, done, info = env.step(action_space[action])
-        frames.add(frame = preprocess(obs))
-        show(obs,frames)
+        cnt = cnt + 1
+        #action = get_action(actor,frames.stack,action_space)
+        #obs, rew, done, info = env.step(action_space[action])
+        #frames.add(frame = preprocess(obs))
+        #show(obs,frames)
+        play(env, mem, frames, action_space, actor, False)
 
-        #learn(actor, critic, frames, action, rew, prev_frames, done, action_space)
+        batch = np.asarray(mem.sample(1024))
+        frames_batch = np.array([each[0] for each in batch], ndmin=3)
+        action_batch = np.array([each[1] for each in batch])
+        reward_batch = np.array([each[2] for each in batch])
+        prev_frame_batch = np.array([each[3] for each in batch], ndmin=3)
+        done_batch = np.array([each[4] for each in batch])
+        learn(actor, critic, frames_batch, action_batch, reward_batch, prev_frame_batch, done_batch, action_space)
 
-        if done:
-            obs = env.reset()
+        if cnt % 5 == 0:
+            play(env, mem, frames, action_space, actor, True)
 
 
 
