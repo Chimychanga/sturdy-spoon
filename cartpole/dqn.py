@@ -10,6 +10,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras import backend as K
 
+tf.config.run_functions_eagerly(True)
 import tensorboard
 from tensorflow.keras.utils import plot_model
 
@@ -69,5 +70,5 @@ class Agent():
         model= keras.Sequential()
         model.add(keras.Input(shape=state_shape))
         model.add(layers.Dense(12, activation="relu"))
-        model.add(layers.Dense(action_shape, activation='softmax'))
+        model.add(layers.Dense(action_shape, activation='linear'))
         return model

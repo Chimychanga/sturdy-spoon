@@ -20,7 +20,7 @@ gamma = 0.99
 # Max steps per game
 max_steps = 200
 # number of training steps
-n_games = 100
+n_games = 1000
 # Create the environment
 env = gym.make("CartPole-v0")
 # Smallest number such that 1.0 + eps != 1.0
@@ -62,7 +62,6 @@ def test_agent():
     print(out1)
     print(out2)
     assert np.all((out1[0]-out2[0])!=0), "Failed agent test - same output different state"
-
     print("Agent test passed :)\n\n")
 
 state_shape=env.observation_space.shape # the state space
@@ -76,26 +75,79 @@ test_agent()
 mem = Memory(10000, state_shape)
 agent = Agent(state_shape, action_shape)
 
-action = env.action_space.sample()
-next_state, reward, done, info = env.step(action)
-
 epsilon = 1
+batch_size = 64
+
+#action = env.action_space.sample()
+#next_state, reward, done, info = env.step(action)
+
 for game in range(n_games):
+
     state = env.reset()
+    game_reward = 0
+
     for step in range(max_steps):
-        env.render()
+        #Render game
+        if game % 10 == 0:
+            env.render()
+
+        #Choose action depending on eps
         if np.random.rand() < epsilon:
             action = env.action_space.sample()
         else:
+            state = np.array(state).reshape(-1,4)
             action = np.argmax(agent.model.predict(state))
 
         next_state, reward, done, info = env.step(action)
 
-        state = np.array(state).reshape(-1,4)
-        print(agent.model.predict(state))
+        mem.store(state, next_state, action, reward, done)
 
+        #state = np.array(state).reshape(-1,4)
+
+        #print(agent.model.predict(state))
+        #print(np.argmax(agent.model.predict(state)))
+        #print(mem.sample(1)[0])
+        #print(agent.model.predict(mem.sample(1)[0]))
         state = next_state
         if done:
-            print("Episode finished after {} timesteps".format(step+1))
+            print("Episode finished after {} timesteps with {} epsilon".format(step+1, epsilon))
+            epsilon = epsilon *0.95
+            env.close()
             break
+
+    batch = mem.sample(batch_size)
+    if batch == None:
+        continue
+
+    #reminder: next_state, reward, done are post-action
+    #state and action are pre-action
+    batch_state = batch[0]
+    batch_next_state = batch[1]
+    batch_actions = batch[2]
+    batch_rewards = batch[3]
+    batch_dones = batch[4]
+
+    batch_state_q_val = agent.model.predict(batch_state)
+    batch_next_state_q_val = agent.model.predict(batch_next_state)
+
+    target = batch_state_q_val.copy()
+
+    #fix dones and create target
+    for i in range(batch_size):
+        action = batch_actions[i]
+        reward = batch_rewards[i]
+        done = batch_dones[i]
+        if done:
+            reward = 0
+
+        target[i][action] += 0.9 * (reward + (0.95 * np.max(batch_next_state_q_val[i])) - target[i][action])
+
+    # q = [1,0]
+    # q = np.array(q).reshape(-1,2)
+    # print(mem.mem_size)
+    # state = batch_state[0].reshape(-1,4)
+    # print(agent.model.predict(state))
+    agent.model.fit(batch_state, target, verbose=0)
+    # print(agent.model.predict(state))
+
 env.close()
